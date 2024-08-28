@@ -1,0 +1,127 @@
+trigger:
+  branches:
+    include:
+    - "*"
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+- template: variables/variables.yaml
+
+steps:
+#  Download gzip file of  the FCS tool that is hosted on a storage account 
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: $(AzureSubscription)
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      az storage blob download \
+        --container-name $(containername) \
+        --file fcs_0.39.0_Linux_x86_64.tar.gz \
+        --name "fcs_0.39.0_Linux_x86_64.tar.gz"  \
+        --account-key $(accountkey) \
+        --account-name $(accountname)
+  displayName: 'Download CrowdStrike FCS IaC scanning tool from Azure Storage Account'
+
+# Scan repository with Crowdstrike FCS IaC scanning tool
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: $(AzureSubscription)
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+              tar xvzf fcs_0.39.0_Linux_x86_64.tar.gz
+              chmod +x fcs
+              ./fcs iac scan \
+              --fail-on "high=50,medium=50,low=50,info=50" \
+              --report-formats sarif \
+              --client-id $(FALCON_CLIENT_ID) \
+              --client-secret $(FALCON_CLIENT_SECRET) \
+              --falcon-region $(FALCON_CLOUD_REGION) \
+              --upload-results \
+              --output-path $(Build.SourcesDirectory) \
+              --path $(Build.SourcesDirectory) | tee scansummary.txt
+              SARIFFILE=$(grep 'Results saved to file:' scansummary.txt | sed 's/.*file: //')
+              jq '.runs[].tool.driver.informationUri = "https://www.crowdstrike.com"' $SARIFFILE > results.sarif
+  displayName: 'Scan repository with Crowdstrike FCS IaC scanning tool'
+
+- publish: ./results.sarif
+  artifact: CodeAnalysisLogs
+
+- script: |
+    cat scansummary.txt
+  displayName: 'Return IAC Scan Summary'
+
+- script: |
+    cat results.sarif
+  displayName: 'Return IAC Sarif Results'
+
+- task: Docker@2
+  inputs:
+    repository: $(CONTAINER_REPO)
+    tags: $(CONTAINER_TAG)
+    command: 'build'
+    Dockerfile: '**/Dockerfile'
+  displayName: 'Build container image using Docker'
+
+# Scan Container Image - https://github.com/crowdstrike/container-image-scan?tab=readme-ov-file#crowdstrike-container-image-scan- 
+- script: |
+    export FALCON_CLIENT_SECRET=$(FALCON_CLIENT_SECRET)
+    export FALCON_CLIENT_ID=$(FALCON_CLIENT_ID)
+    pip3 install docker crowdstrike-falconpy
+    pip install retry
+    if [ ! -d container-image-scan ] ; then
+      git clone https://github.com/crowdstrike/container-image-scan
+    fi
+    python3 container-image-scan/cs_scanimage.py --json-report report.json 
+  displayName: 'Scan container image with CrowdStrike Container Image Scan '
+
+# Print CrowdStrike Full Image Scan Report 
+- script: |
+    jq '.' report.json
+  displayName: 'Print CrowdStrike Full Image Scan Report'
+
+# Tag container image 
+- task: CmdLine@2
+  inputs:
+    script: 'docker tag $(CONTAINER_REPO) $(azureContainerRegistry)/$(CONTAINER_REPO)'
+  displayName: 'Tag container image'
+
+# After an image is assessed, make a GET request to see if any images match a policy. If deny is true, the policy suggestion is that you do not deploy the image in your environment.
+- script: |
+    export FALCON_CLIENT_SECRET=$(FALCON_CLIENT_SECRET)
+    export FALCON_CLIENT_ID=$(FALCON_CLIENT_ID)
+    export API_BASE_URL=$(API_BASE_URL)
+    export YOUR_CLOUD=$(YOUR_CLOUD)
+    RESPONSE=$(curl \
+    --header "Content-Type: application/x-www-form-urlencoded" \
+    --data "client_id=${FALCON_CLIENT_ID}&client_secret=${FALCON_CLIENT_SECRET}" \
+    --request POST \
+    --silent ${API_BASE_URL}/oauth2/token) CS_JWT=$(echo ${RESPONSE} | jq -r '.access_token')
+    ImageCheck=$(curl -s -X GET -H "authorization: Bearer ${CS_JWT}" \
+    "https://container-upload.${YOUR_CLOUD}/policy-checks?policy_type=image-prevention-policy&repository=$CONTAINER_REPO&tag=$(CONTAINER_TAG)")
+     export test=$(echo $ImageCheck | jq '.resources[0].deny')
+     echo "##vso[task.setvariable variable=failBuild;isOutput=true]$test"
+  name: policy
+  displayName: 'Return API response from CrowdStrike Image Assesment'
+
+# Show output variable in the same job
+- bash: echo "$(policy.failBuild)"
+  displayName: 'Response from CrowdStrike Image Assesment'
+
+# If API response is false, push image to Azure Container Registry
+- task: Docker@2
+  condition: and(succeeded(), eq(variables['policy.failBuild'], 'false')) 
+  inputs:
+    containerRegistry: $(dockerRegistryServiceConnection)
+    repository: $(CONTAINER_REPO)
+    tags: $(CONTAINER_TAG)
+    command: 'push'
+  displayName: 'Conditionally Push container image to Azure Container Registry'
+
+- bash: exit 1
+  displayName: Fail build if API response returned is true. If it is true, the policy suggestion is that you do not deploy the image in your environment.
+  condition: and(succeeded(),eq(variables['policy.failBuild'], 'true'))
+

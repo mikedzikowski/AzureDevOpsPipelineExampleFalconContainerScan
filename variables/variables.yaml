@@ -1,0 +1,15 @@
+variables:
+  accountkey: "your storage accountkey"
+  accountname: "your storage account"
+  azureContainerRegistry: "yourarc.azurecr.io"
+  CONTAINER_REPO: "samples/ngnix"
+  CONTAINER_TAG: "latest"
+  containername: "your storage aaccount container name"
+  dockerRegistryServiceConnection: "your docker service connection in ADO"
+  FALCON_CLIENT_ID: "your falcon client id"
+  FALCON_CLIENT_SECRET: "your falcon client secret"
+  FALCON_CLOUD_REGION: "falcon cloud region"
+  SCORE: 50000
+  API_BASE_URL: "your falcon api base url"
+  YOUR_CLOUD: "your falcon cloud"
+  AzureSubscription: "your azure subscription"
