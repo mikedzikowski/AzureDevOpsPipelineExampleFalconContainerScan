@@ -107,7 +107,7 @@ steps:
   name: policy
   displayName: 'Return API response from CrowdStrike Image Assesment'
 
-# Show output variable in the same job
+# Show output of variable failBuild
 - bash: echo "$(policy.failBuild)"
   displayName: 'Response from CrowdStrike Image Assesment'
 
