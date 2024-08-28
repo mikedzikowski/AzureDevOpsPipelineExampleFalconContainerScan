@@ -3,6 +3,10 @@ An example Azure DevOps Pipeline that will scan a container image and conditiona
 
 This pipeline leverages the FCS IaC tool to scan a DevOps repo, Falcon Cloud Security Image Assesment policies and Azure Container Registries to scan a container images and based on an API response. Based on the API response the pipeline will conditionally build the image in a registry. By integrating these tools into a pipeline, developers will have the opportunity to address any security issues before deploying updates into their containers. 
 
+The provided files can be imported into your ADO environment
+* azure-pipelines.yml - pipeline steps 
+* variables.yaml - defined variables used with the pipeline 
+
 API Response True - Block Image build
 
 ![alt text](/images/failbuild.png)
