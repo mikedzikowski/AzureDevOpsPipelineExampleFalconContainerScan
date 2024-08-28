@@ -14,6 +14,10 @@ The provided files can be imported into your ADO environment
 >
 >[Manage Service Connections](https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints?view=azure-devops)
 
+> [!IMPORTANT] 
+>Image Assesment Policies 
+> * The pipeline assumes image assesment policies have been defined in Falcon Cloud Security
+
 API Response True - Block Image build
 
 ![alt text](/images/failbuild.png)
