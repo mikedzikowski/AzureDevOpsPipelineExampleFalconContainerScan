@@ -7,6 +7,12 @@ The provided files can be imported into your ADO environment
 * azure-pipelines.yml - pipeline steps 
 * variables.yaml - defined variables used with the pipeline 
 
+> [!NOTE]
+>Required Service Connections in ADO:
+* Azure Resource Manager using service principal
+* Docker Registry
+* [Manage Service Connections](https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints?view=azure-devops)
+
 API Response True - Block Image build
 
 ![alt text](/images/failbuild.png)
