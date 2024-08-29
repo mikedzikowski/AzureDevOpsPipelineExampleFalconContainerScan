@@ -17,6 +17,9 @@ The provided files can be imported into your ADO environment
 > [!IMPORTANT] 
 >Image Assesment Policies 
 > * The pipeline assumes image assesment policies have been defined in Falcon Cloud Security
+>FCS Tool
+> * The pipeline assumes the FCS (Falcon Cloud Security CLI for Linux x64) tool has been uploaded to a storage account for consumption of the pipeline - (See Tools Downloads in the Falcon Portal)
+
 
 API Response True - Block Image build
 
