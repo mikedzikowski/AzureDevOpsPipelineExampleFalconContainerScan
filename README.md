@@ -15,10 +15,13 @@ The provided files can be imported into your ADO environment
 >[Manage Service Connections](https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints?view=azure-devops)
 
 > [!IMPORTANT] 
+>Pipeline pre-reqs
+>
 >Image Assesment Policies 
-> * The pipeline assumes image assesment policies have been defined in Falcon Cloud Security
+>* The pipeline assumes image assesment policies have been defined in Falcon Cloud Security
+>
 >FCS Tool
-> * The pipeline assumes the FCS (Falcon Cloud Security CLI for Linux x64) tool has been uploaded to a storage account for consumption of the pipeline - (See Tools Downloads in the Falcon Portal)
+> * The pipeline assumes the FCS (Falcon Cloud Security CLI for Linux x64) tool has been uploaded to a storage account for consumption by the pipeline steps - (See Tools Downloads in the Falcon Portal)
 
 
 API Response True - Block Image build
